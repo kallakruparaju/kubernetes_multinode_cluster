@@ -1,0 +1,161 @@
+*************Setup of Master node***********************
+
+Installing CNI docker
+
+#yum install docker -y
+
+enabling the services of the docker
+
+systemctl enable docker --now
+
+configuring yum for kubeadm
+
+#cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+
+Installing kubeadm, kubectl and kubelet and disable the exclude from from the installation guide.
+
+#yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+enabling kubelet services
+
+#systemctl enable --now kubelet
+
+Pulling Images using kubeadm
+
+#kubeadm config images pull
+
+Installing iproute-tc
+#yum install iproute-tc -y
+
+
+updating k8s config file
+# cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+
+restarting sysctl
+
+#systemctl --system
+
+configuring daemon file of docker
+
+#cat <<EOF | sudo tee /etc/docker/daemon.json
+{
+"exec-opts":["native.cgroupdriver=systemd"]
+}
+EOF
+
+Restarting Docker
+#systemctl restart docker
+
+Kubeadm init will helps to initize the containers
+
+#kubeadm init --pod-network-cidr=10.240.0.0/16 --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem
+
+creating kube directory
+#mkdir -p $HOME/.kube 
+
+Copying kube config form root directory of kubernetes.
+#sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+
+changing owner permission
+#sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+clear the cache in the memory
+#echo 3 > /proc/sys/vm/drop_caches
+
+To list the nodes of the kubernetes
+#kubectl get nodes
+
+
+
+***********************Setup of Slave node************************************
+
+Installing CNI docker
+
+#yum install docker -y
+
+enabling the services of the docker
+
+systemctl enable docker --now
+
+configuring yum for kubeadm
+
+#cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+repo_gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
+
+Installing kubeadm, kubectl and kubelet and disable the exclude from from the installation guide.
+
+#yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+enabling kubelet services
+
+#systemctl enable --now kubelet
+
+Pulling Images using kubeadm
+
+#kubeadm config images pull
+
+Installing iproute-tc
+#yum install iproute-tc -y
+
+
+updating k8s config file
+# cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+
+restarting sysctl
+
+#systemctl --system
+
+configuring daemon file of docker
+
+#cat <<EOF | sudo tee /etc/docker/daemon.json
+{
+"exec-opts":["native.cgroupdriver=systemd"]
+}
+EOF
+
+Restarting Docker
+#systemctl restart docker
+
+Listing nodes of kubernetes
+#kubectl get nodes 
+
+configuring flannel
+
+#kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+
+Listing nodes of kubernetes
+#kubectl get nodes 
+
+
+update flannel network from 10.244.0.0/16 to 10.240.0.0/16 .
+# kubectl edit configmap kube-flannel-cfg -n kube-system
+
+deleting flannel pods in all nodes
+# kubectl delete pods -l app=flannel -n kube-system
+
+listing pods in all namespace
+#kubectl get pods --all-namespaces
+
